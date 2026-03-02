@@ -16,7 +16,7 @@ jobs:
       - name: 运行 Python 脚本
         id: run_script
         run: |
-          python monitor.py
+          python job.py
         continue-on-error: true
 
       # ✅ 成功通知
