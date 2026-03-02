@@ -1,45 +1,82 @@
-name: 自动监控系统
+import requests
+from bs4 import BeautifulSoup
+import json
+import os
+import urllib.parse
 
-on:
-  schedule:
-    - cron: '0 1 * * *'   # 北京时间9点
-  workflow_dispatch:
+KEYWORDS = [
+    "装饰施工图深化",
+    "现场协助施工",
+    "竣工图绘制",
+    "驻场深化"
+]
 
-jobs:
-  monitor:
-    runs-on: ubuntu-latest
+SITES = [
+    "zhipin.com",
+    "zhaopin.com",
+    "51job.com",
+    "liepin.com"
+]
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+DATA_FILE = "data.json"
 
-      - name: 安装 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+def build_query():
+    keyword_part = " OR ".join([f'"{k}"' for k in KEYWORDS])
+    site_part = " OR ".join([f"site:{s}" for s in SITES])
+    return f"({keyword_part}) ({site_part})"
 
-      - name: 安装依赖
-        run: |
-          pip install requests
-          pip install beautifulsoup4
+def search_jobs():
+    query = build_query()
+    url = "https://www.bing.com/search?q=" + urllib.parse.quote(query)
 
-      - name: 运行 Python 脚本
-        run: python job.py
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-      - name: 发送企业微信通知
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            STATUS="成功 ✅"
-          else
-            STATUS="失败 ❌"
-          fi
+    response = requests.get(url, headers=headers, timeout=10)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"msgtype\": \"markdown\",
-            \"markdown\": {
-              \"content\": \"## 🚨 监控通知\n\n状态：**$STATUS**\n\n仓库：${{ github.repository }}\n\n时间：北京时间 9:00 定时任务\"
-            }
-          }"
+    jobs = []
+
+    for item in soup.find_all("li", class_="b_algo"):
+        title_tag = item.find("a")
+        if not title_tag:
+            continue
+
+        title = title_tag.text.strip()
+        link = title_tag.get("href")
+
+        jobs.append({
+            "title": title,
+            "link": link
+        })
+
+    return jobs
+
+def load_old_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_data(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
+def main():
+    new_jobs = search_jobs()
+    old_jobs = load_old_data()
+
+    added = [job for job in new_jobs if job not in old_jobs]
+
+    if added:
+        print("DATA_CHANGED")
+        for job in added:
+            print(f"{job['title']}")
+            print(f"{job['link']}")
+        save_data(new_jobs)
+    else:
+        print("NO_CHANGE")
+
+if __name__ == "__main__":
+    main()
