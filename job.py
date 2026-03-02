@@ -60,3 +60,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+jobs = get_jobs()
+
+print("抓到岗位数量：", len(jobs))
+print(jobs)
