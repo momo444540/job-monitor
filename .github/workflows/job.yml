@@ -2,7 +2,7 @@ name: Job Monitor
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 北京时间 9:00
+    - cron: '0 1 * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
 
       - name: 安装依赖
         run: |
-          pip install requests beautifulsoup4
+          pip install requests
 
       - name: 运行 Python
         run: |
