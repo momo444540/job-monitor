@@ -1,17 +1,35 @@
-- name: 发送企业微信通知
-  if: always()
-  run: |
-    if [ "${{ job.status }}" == "success" ]; then
-      STATUS="成功 ✅"
-    else
-      STATUS="失败 ❌"
-    fi
+name: 自动监控系统
 
-    curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"msgtype\": \"markdown\",
-      \"markdown\": {
-        \"content\": \"## 🚨 监控通知\n\n状态：**$STATUS**\n\n仓库：${{ github.repository }}\n\n时间：北京时间 9:00 定时任务\"
-      }
-    }"
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 北京时间早上9点 (UTC+8)
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 运行 Python 脚本
+        run: python job.py
+
+      - name: 发送企业微信通知
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS="成功 ✅"
+          else
+            STATUS="失败 ❌"
+          fi
+
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"msgtype\": \"markdown\",
+            \"markdown\": {
+              \"content\": \"## 🚨 监控通知\n\n状态：**$STATUS**\n\n仓库：${{ github.repository }}\n\n时间：北京时间 9:00 定时任务\"
+            }
+          }"
