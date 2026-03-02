@@ -1,8 +1,6 @@
 name: Run Python Job
 
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 每天上午10点（北京时间）
   workflow_dispatch:
 
 jobs:
@@ -10,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -18,8 +16,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install requests
-        run: pip install requests
+      - name: Install dependencies
+        run: |
+          pip install requests
+          pip install beautifulsoup4
 
       - name: Run script
         run: python job.py
