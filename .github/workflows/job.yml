@@ -1,12 +1,12 @@
-name: Job Monitor
+name: monitor
 
 on:
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '0 1 * * *'  # 北京时间9点
   workflow_dispatch:
 
 jobs:
-  monitor:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,33 +16,31 @@ jobs:
       - name: 安装 Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: 3.9
 
       - name: 安装依赖
-        run: |
-          pip install requests
+        run: pip install requests
 
       - name: 运行 Python
-        id: check
+        id: run_python
         run: |
-          RESULT=$(python job.py)
-          echo "$RESULT"
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          python job.py > result.txt
+          cat result.txt
 
       - name: 发送企业微信通知
-        if: contains(steps.check.outputs.result, 'DATA_CHANGED')
+        if: contains(steps.run_python.outputs, 'DATA_CHANGED') || contains(join(fromJSON('[""]'), ''), '')
         run: |
-          curl -X POST "${{ secrets.WX_WEBHOOK }}" \
-          -H "Content-Type: application/json" \
-          -d '{
-                "msgtype": "text",
-                "text": {
-                  "content": "监控通知：\n${{ steps.check.outputs.result }}"
-                }
-              }'
-      - name: 查看 webhook
+          MESSAGE=$(cat result.txt)
+          if echo "$MESSAGE" | grep -q "DATA_CHANGED"; then
+            curl -X POST "${{ secrets.WX_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MESSAGE\"}}"
+          fi
+
+      - name: 提交更新的 jobs.json
         run: |
-          echo "Webhook内容："
-          echo "${{ secrets.WX_WEBHOOK }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add jobs.json
+          git commit -m "update jobs data" || echo "No changes"
+          git push
