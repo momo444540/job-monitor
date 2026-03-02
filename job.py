@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 # 测试网址
 url = "https://example.com"
 
-response = requests.get(url)
+response = requests.get(url, verify=False)
 
 soup = BeautifulSoup(response.text, "html.parser")
 
