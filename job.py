@@ -1,38 +1,63 @@
-name: Job Monitor
+import requests
+import json
+import os
+import urllib.parse
 
-on:
-  schedule:
-    - cron: '0 1 * * *'
-  workflow_dispatch:
+KEYWORDS = [
+    "装饰施工图深化",
+    "现场协助施工",
+    "竣工图绘制",
+    "驻场深化"
+]
 
-jobs:
-  monitor:
-    runs-on: ubuntu-latest
+DATA_FILE = "data.json"
 
-    steps:
-      - name: 拉取代码
-        uses: actions/checkout@v3
 
-      - name: 安装 Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+def build_query():
+    return " OR ".join(KEYWORDS)
 
-      - name: 安装依赖
-        run: |
-          pip install requests beautifulsoup4
 
-      - name: 运行 Python
-        id: check
-        run: |
-          RESULT=$(python job.py)
-          echo "$RESULT"
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+def fetch_jobs():
+    query = build_query()
+    url = f"https://www.zhipin.com/web/geek/job?query={urllib.parse.quote(query)}&city=100010000"
 
-      - name: 发送通知
-        if: contains(steps.check.outputs.result, 'DATA_CHANGED')
-        run: |
-          echo "发现新岗位："
-          echo "${{ steps.check.outputs.result }}"
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        return [{"title": f"示例岗位：{query}", "link": url}]
+    except:
+        return []
+
+
+def load_old_data():
+    if not os.path.exists(DATA_FILE):
+        return []
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_data(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def main():
+    new_data = fetch_jobs()
+    old_data = load_old_data()
+
+    if new_data != old_data:
+        save_data(new_data)
+        print("DATA_CHANGED")
+        for job in new_data:
+            print(job["title"])
+            print(job["link"])
+            print("-----")
+    else:
+        print("NO_CHANGE")
+
+
+if __name__ == "__main__":
+    main()
