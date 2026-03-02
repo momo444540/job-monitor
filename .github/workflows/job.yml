@@ -1,25 +1,20 @@
-name: Run Python Job
+name: Job Monitor
 
 on:
   workflow_dispatch:
 
 jobs:
-  run-job:
+  notify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
+      - name: Send WeChat Message
         run: |
-          pip install requests
-          pip install beautifulsoup4
-
-      - name: Run script
-        run: python job.py
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+                "msgtype": "text",
+                "text": {
+                  "content": "GitHub Actions 测试成功 ✅"
+                }
+              }'
