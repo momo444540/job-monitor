@@ -1,12 +1,12 @@
-name: monitor
+name: Job Monitor
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # 北京时间9点
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
-  build:
+  monitor:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,31 +16,18 @@ jobs:
       - name: 安装 Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.9'
 
       - name: 安装依赖
-        run: pip install requests
+        run: pip install requests beautifulsoup4
 
       - name: 运行 Python
-        id: run_python
-        run: |
-          python job.py > result.txt
-          cat result.txt
+        run: python job.py
 
-      - name: 发送企业微信通知
-        if: contains(steps.run_python.outputs, 'DATA_CHANGED') || contains(join(fromJSON('[""]'), ''), '')
+      - name: 提交更新的 jobs.json
         run: |
-          MESSAGE=$(cat result.txt)
-          if echo "$MESSAGE" | grep -q "DATA_CHANGED"; then
-            curl -X POST "${{ secrets.WX_WEBHOOK }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MESSAGE\"}}"
-          fi
-
-      -- name: 提交更新的 jobs.json
-  run: |
-    git config user.name "github-actions"
-    git config user.email "github-actions@github.com"
-    git add jobs.json
-    git commit -m "update jobs data" || echo "No changes"
-    git push
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add jobs.json
+          git commit -m "update jobs data" || echo "No changes"
+          git push
