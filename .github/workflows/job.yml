@@ -42,3 +42,7 @@ jobs:
                   "content": "监控通知：\n${{ steps.check.outputs.result }}"
                 }
               }'
+      - name: 查看 webhook
+        run: |
+          echo "Webhook内容："
+          echo "${{ secrets.WX_WEBHOOK }}"
