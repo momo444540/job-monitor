@@ -2,7 +2,7 @@ name: 自动监控系统
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 北京时间早上9点 (UTC+8)
+    - cron: '0 1 * * *'   # 北京时间9点
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: |
+          pip install requests
+          pip install beautifulsoup4
 
       - name: 运行 Python 脚本
         run: python job.py
