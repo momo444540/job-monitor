@@ -3,7 +3,7 @@ import json
 import os
 
 # ====== 你的查询地址 ======
-URL = "你的boss直聘完整查询URL"
+URL = "https://www.zhipin.com/sem/10.html?_ts=1772420930352&sid=sem_bingpc&qudao=bing_pc_H120003UY5&plan=BOSS-%E5%BF%85%E5%BA%94-%E5%93%81%E7%89%8C&unit=boss&keyword=boss&msclkid=f5875b5a0e3b1aec553132fef104e1f0"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
