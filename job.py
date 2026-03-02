@@ -1,25 +1,12 @@
-name: Run Python Job
+import requests
+from bs4 import BeautifulSoup
 
-on:
-  workflow_dispatch:
+# 测试网址
+url = "https://example.com"
 
-jobs:
-  run-job:
-    runs-on: ubuntu-latest
+response = requests.get(url)
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+soup = BeautifulSoup(response.text, "html.parser")
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          pip install requests
-          pip install beautifulsoup4
-
-      - name: Run script
-        run: python job.py
+print("网页标题是：")
+print(soup.title.text)
