@@ -1,81 +1,38 @@
-import requests
-from bs4 import BeautifulSoup
-import json
-import os
-import urllib.parse
+name: Job Monitor
 
-KEYWORDS = [
-    "装饰施工图深化",
-    "现场协助施工",
-    "竣工图绘制",
-    "驻场深化"
-]
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
 
-SITES = [
-    "zhipin.com",
-    "zhaopin.com",
-    "51job.com",
-    "liepin.com"
-]
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
 
-DATA_FILE = "data.json"
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v3
 
+      - name: 安装 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-def build_query():
-    keyword_part = " OR ".join(['"' + k + '"' for k in KEYWORDS])
-    site_part = " OR ".join(["site:" + s for s in SITES])
-    return "(" + keyword_part + ") (" + site_part + ")"
+      - name: 安装依赖
+        run: |
+          pip install requests beautifulsoup4
 
+      - name: 运行 Python
+        id: check
+        run: |
+          RESULT=$(python job.py)
+          echo "$RESULT"
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-def search_jobs():
-    query = build_query()
-    url = "https://www.bing.com/search?q=" + urllib.parse.quote(query)
-
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers, timeout=15)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    jobs = []
-
-    for item in soup.find_all("li", class_="b_algo"):
-        a = item.find("a")
-        if a:
-            jobs.append({
-                "title": a.text.strip(),
-                "link": a.get("href")
-            })
-
-    return jobs
-
-
-def load_old_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-
-def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def main():
-    new_jobs = search_jobs()
-    old_jobs = load_old_data()
-
-    added = [job for job in new_jobs if job not in old_jobs]
-
-    if added:
-        print("DATA_CHANGED")
-        for job in added:
-            print(job["title"])
-            print(job["link"])
-            print("-----")
-        save_data(new_jobs)
-    else:
-        print("NO_CHANGE")
-
-
-if __name__ == "__main__":
-    main()
+      - name: 发送通知
+        if: contains(steps.check.outputs.result, 'DATA_CHANGED')
+        run: |
+          echo "发现新岗位："
+          echo "${{ steps.check.outputs.result }}"
