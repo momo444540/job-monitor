@@ -23,5 +23,22 @@ jobs:
           pip install requests
 
       - name: 运行 Python
+        id: check
         run: |
-          python job.py
+          RESULT=$(python job.py)
+          echo "$RESULT"
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 发送企业微信通知
+        if: contains(steps.check.outputs.result, 'DATA_CHANGED')
+        run: |
+          curl -X POST "${{ secrets.WX_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+                "msgtype": "text",
+                "text": {
+                  "content": "监控通知：\n${{ steps.check.outputs.result }}"
+                }
+              }'
